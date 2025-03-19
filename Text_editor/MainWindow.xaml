@@ -13,14 +13,35 @@
         </Grid.RowDefinitions>
 
         <ToolBar Grid.Row="0">
-            <Button Content="Open" Command="{Binding OpenCommand}"/>
-            <Button Content="Save" Command="{Binding SaveCommand}"/>
+            <ToggleButton x:Name="FileButton" Content="File">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton">
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="IsChecked" Value="True"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
         </ToolBar>
 
+        <Popup IsOpen="{Binding IsChecked, ElementName=FileButton}" 
+           PlacementTarget="{Binding ElementName=FileButton}" 
+           Placement="Bottom"
+           StaysOpen="False">
+            <StackPanel Background="White">
+                <Button Content="New File" Command="{Binding NewCommand}"/>
+                <Button Content="Open" Command="{Binding OpenCommand}"/>
+                <Button Content="Save" Command="{Binding SaveCommand}"/>
+                <Button Content="Save As" Command="{Binding SaveAsCommand}"/>
+            </StackPanel>
+        </Popup>
+
         <TextBox Grid.Row="1" 
-                 Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" 
-                 AcceptsReturn="True" 
-                 VerticalScrollBarVisibility="Auto" 
-                 HorizontalScrollBarVisibility="Auto"/>
+             Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" 
+             AcceptsReturn="True" 
+             VerticalScrollBarVisibility="Auto" 
+             HorizontalScrollBarVisibility="Auto"/>
     </Grid>
 </Window>
