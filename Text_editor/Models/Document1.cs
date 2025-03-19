@@ -9,8 +9,9 @@ namespace Text_editor.Models
 {
     internal class Document1
     {
-        public string Content { get; set; }
-        public string FilePath { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
 
         public void Save()
         {
@@ -19,12 +20,23 @@ namespace Text_editor.Models
                 throw new InvalidOperationException("File path is not set.");
             }
             File.WriteAllText(FilePath, Content);
-
         }
 
-        public void Load(string path) 
-        { 
+        public void Load(string path)
+        {
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException("The specified file does not exist.", path);
+            }
+            FilePath = path;
+            Content = File.ReadAllText(path);
+        }
 
+        public void CreateNew(string path)
+        {
+            FilePath = path;
+            Content = string.Empty;
+            // don't create the file, it will be created when Save is called
         }
     }
 }

@@ -13,7 +13,7 @@
         </Grid.RowDefinitions>
 
         <ToolBar Grid.Row="0">
-            <ToggleButton x:Name="FileButton" Content="File">
+            <ToggleButton x:Name="FileButton" Content="File" Background="LightGray" Height="32" Width="35">
                 <ToggleButton.Style>
                     <Style TargetType="ToggleButton">
                         <Style.Triggers>
@@ -24,13 +24,15 @@
                     </Style>
                 </ToggleButton.Style>
             </ToggleButton>
+            <Button Content="{Binding FileName}" 
+                ToolTip="{Binding FilePath}" Height="40" Width="350"/>
         </ToolBar>
 
         <Popup IsOpen="{Binding IsChecked, ElementName=FileButton}" 
            PlacementTarget="{Binding ElementName=FileButton}" 
            Placement="Bottom"
            StaysOpen="False">
-            <StackPanel Background="White">
+            <StackPanel Background="Gray">
                 <Button Content="New File" Command="{Binding NewCommand}"/>
                 <Button Content="Open" Command="{Binding OpenCommand}"/>
                 <Button Content="Save" Command="{Binding SaveCommand}"/>

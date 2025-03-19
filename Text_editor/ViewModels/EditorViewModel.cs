@@ -13,6 +13,7 @@ using Text_editor.Commands;
 using Text_editor.Models;
 using System.IO;
 using System.Windows;
+using System.Xml.Linq;
 
 namespace Text_editor.ViewModels
 {
@@ -29,6 +30,8 @@ namespace Text_editor.ViewModels
                 {
                     _document.Content = value;
                     OnPropertyChanged(nameof(Content));
+                    
+                    (SaveCommand as RelayCommand)?.RaiseCanExecuteChanged();
                 }
             }
          }
@@ -36,91 +39,146 @@ namespace Text_editor.ViewModels
         public string FilePath
         {
             get => _document.FilePath;
-            set
+            private set
             {
                 if (_document.FilePath != value)
                 {
                     _document.FilePath = value;
                     OnPropertyChanged(nameof(FilePath));
-                    OnFilePathChanged();
+                    (SaveCommand as RelayCommand)?.RaiseCanExecuteChanged();
                 }
+            }
+        }
+        public string FileName
+        {
+            get
+            {
+                return string.IsNullOrEmpty(FilePath)
+                      ?"No file opened"
+                      :Path.GetFileName(FilePath);
             }
         }
         public ICommand SaveCommand { get; }
         public ICommand OpenCommand { get; }
+        public ICommand NewCommand { get; }
+        public ICommand SaveAsCommand { get; }
 
         public EditorViewModel()
         { 
             _document = new Document1();
-            SaveCommand = new RelayCommand(Save, CanSave);
-            OpenCommand = new RelayCommand(Open);
+            NewCommand = new RelayCommand(NewFile);
+            SaveCommand = new RelayCommand(SaveFile, CanSaveFile);
+            OpenCommand = new RelayCommand(OpenFile);
+            SaveAsCommand = new RelayCommand(SaveFileAs);
+
         }
 
-        private bool CanSave()
+        private void NewFile()
+        {
+            if (!string.IsNullOrEmpty(_document.Content))
+            {
+                var result = MessageBox.Show("Do you want to save changes to the current file?", "Save Changes", MessageBoxButton.YesNoCancel);
+                if (result == MessageBoxResult.Cancel)
+                {
+                    return;
+                }
+                else if (result == MessageBoxResult.Yes)
+                {
+                    SaveFile();
+                }
+            }
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                DefaultExt = "txt",
+                Title = "Create New File"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                _document.CreateNew(saveFileDialog.FileName);
+                OnPropertyChanged(nameof(Content));
+                OnPropertyChanged(nameof(FilePath));
+                MessageBox.Show($"New file created at: {_document.FilePath}", "File Created", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            UpdateFilePath(Path.GetFileName(FilePath));
+        }
+
+        private void OpenFile()
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                Title = "Open File"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    _document.Load(openFileDialog.FileName);
+                    OnPropertyChanged(nameof(Content));
+                    OnPropertyChanged(nameof(FilePath));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error opening file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            UpdateFilePath(Path.GetFileName(FilePath));
+        }
+
+        private void SaveFile()
+        {
+            try
+            {
+                _document.Save();
+                MessageBox.Show("File saved successfully.", "Save", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (InvalidOperationException)
+            {
+                SaveFileAs();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error saving file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveFileAs()
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                DefaultExt = "txt",
+                Title = "Save File As"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                FilePath = saveFileDialog.FileName;
+                SaveFile();
+            }
+        }
+
+        private bool CanSaveFile()
         {
             //return !string.IsNullOrEmpty(Content);
             var canSave = !string.IsNullOrEmpty(FilePath);
             return canSave;
         }
-        private void Save()
+
+        private void UpdateFilePath(string newPath)
         {
-
-            try
+            if (_document.FilePath != newPath)
             {
-                if (string.IsNullOrEmpty(FilePath))
-                {
-                    SaveAs();
-                }
-                else
-                {
-                    _document.Save();
-                    MessageBox.Show("File saved");
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error saving file: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);  
-            }
-               
-        }
-
-        private void SaveAs()
-        {
-            var saveFileDialog = new SaveFileDialog
-            {
-                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
-                DefaultExt = "txt"
-            };
-
-            if (saveFileDialog.ShowDialog() == true)
-            { 
-               FilePath = saveFileDialog.FileName;
-               _document.Save();
-               MessageBox.Show("File saved");
+                _document.FilePath = newPath;
+                OnPropertyChanged(nameof(FilePath));
+                OnPropertyChanged(nameof(FileName));
             }
         }
 
-        private void Open() 
-        {
-            var openFileDialog = new OpenFileDialog
-            {
-                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*"
-            };
-            if (openFileDialog.ShowDialog() == true)
-            {
-                try
-                { 
-                  FilePath = openFileDialog.FileName;
-                  Content = File.ReadAllText(FilePath); //need to create File
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show($"Error opening file: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                }
-            }
-            
-
-        }
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged(string propertyName)
         {
@@ -132,6 +190,4 @@ namespace Text_editor.ViewModels
             (SaveCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
-
-
 }
